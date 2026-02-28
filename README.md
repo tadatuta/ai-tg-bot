@@ -23,6 +23,13 @@
    - `VERTEX_LOCATION`: Регион в Vertex AI (по умолчанию `us-central1`).
    - `GEMINI_MODEL_ID`: Идентификатор модели, по умолчанию используется `gemini-1.5-flash-002` (Gemini 3 Flash).
    - *Для локального запуска* также потребуется переменная `GOOGLE_APPLICATION_CREDENTIALS` (путь к JSON-файлу сервисного аккаунта GCP).
+   
+   **Для деплоя в Яндекс Облако (Yandex Cloud) потребуется задать дополнительные переменные в `.env` файле (или экспортировать их):**
+   - `FUNCTION_NAME`: Имя облачной функции.
+   - `SERVICE_ACCOUNT`: Имя сервисного аккаунта в Yandex Cloud.
+   - `BUCKET_NAME`: Имя бакета Object Storage для монтирования.
+   - `MOUNT_PREFIX`: Префикс в бакете.
+   - `MOUNT_POINT`: Точка монтирования внутри функции.
 
 3. **Редактирование базового промпта:**
    Базовый системный промпт находится в файле `prompt.txt`. Вы можете легко редактировать его перед каждым деплоем бота:
@@ -39,12 +46,18 @@
    yc init
    ```
 
-2. **Экспортируйте переменные окружения:**
+2. **Задайте переменные окружения:**
+   Создайте файл `.env` в корне проекта или экспортируйте переменные перед деплоем:
    ```bash
    export VERTEX_PROJECT_ID=ваши_данные
    export VERTEX_LOCATION=us-central1
    export GEMINI_MODEL_ID=gemini-1.5-flash-002
    export BOT_TOKEN=ваш_токен
+   export FUNCTION_NAME=my-function
+   export SERVICE_ACCOUNT=some-acc
+   export BUCKET_NAME=some-bucket
+   export MOUNT_PREFIX=fldr
+   export MOUNT_POINT=fldr
    ```
 
 3. **Запустите скрипт деплоя:**

@@ -1,4 +1,4 @@
-import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -8,12 +8,16 @@ const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 // We use gemini-1.5-flash as the designated "Flash" model on Vertex AI
 const MODEL_ID = process.env.GEMINI_MODEL_ID || 'gemini-1.5-flash-002';
 
-let vertexAI: VertexAI | null = null;
+let genaiClient: GoogleGenAI | null = null;
 
 try {
     // Initialize Vertex with the project and location. 
     // It expects application default credentials or GOOGLE_APPLICATION_CREDENTIALS set.
-    vertexAI = new VertexAI({ project: PROJECT_ID, location: LOCATION });
+    genaiClient = new GoogleGenAI({
+        vertexai: true,
+        project: PROJECT_ID,
+        location: LOCATION
+    });
 } catch (e) {
     console.error('Failed to initialize Vertex AI client:', e);
 }
@@ -36,38 +40,29 @@ try {
 }
 
 export async function generateResponse(userMessage: string): Promise<string> {
-    if (!vertexAI) {
+    if (!genaiClient) {
         return 'Vertex AI is not configured correctly on the server.';
     }
 
     try {
-        const generativeModel = vertexAI.getGenerativeModel({
+        const response = await genaiClient.models.generateContent({
             model: MODEL_ID,
-            systemInstruction: basePrompt ? { role: 'system', parts: [{ text: basePrompt }] } : undefined,
-            safetySettings: [
-                {
-                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                },
-            ],
-            generationConfig: {
+            contents: userMessage,
+            config: {
+                systemInstruction: basePrompt ? basePrompt : undefined,
+                safetySettings: [
+                    {
+                        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    },
+                ],
                 maxOutputTokens: 8192,
                 temperature: 0.7,
-            },
+            }
         });
 
-        const responseStream = await generativeModel.generateContent({
-            contents: [
-                { role: 'user', parts: [{ text: userMessage }] }
-            ]
-        });
-
-        if (
-            responseStream.response.candidates &&
-            responseStream.response.candidates.length > 0 &&
-            responseStream.response.candidates[0].content.parts.length > 0
-        ) {
-            return responseStream.response.candidates[0].content.parts[0].text || 'No response generated.';
+        if (response.text) {
+            return response.text;
         }
 
         return 'Received an empty response from Gemini.';

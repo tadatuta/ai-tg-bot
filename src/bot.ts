@@ -1,6 +1,6 @@
-import { Bot } from 'grammy';
+import 'dotenv/config';
+import { Bot, webhookCallback } from 'grammy';
 import { generateResponse } from './gemini.js';
-
 const token = process.env.BOT_TOKEN;
 if (!token) {
     throw new Error('BOT_TOKEN environment variable not provided.');
@@ -31,5 +31,16 @@ bot.catch((err) => {
 });
 
 if (require.main === module) {
+    console.log('Starting bot locally...');
     bot.start();
+
+    // Enable graceful stop
+    process.once('SIGINT', () => {
+        bot.stop();
+        console.log('Bot stopped.');
+    });
+    process.once('SIGTERM', () => {
+        bot.stop();
+        console.log('Bot stopped.');
+    });
 }

@@ -26,6 +26,9 @@ export const handler = async (event: any, context: any) => {
         }
 
         if (body && body.update_id) {
+            if (!bot.isInited()) {
+                await bot.init();
+            }
             await bot.handleUpdate(body);
         }
 
