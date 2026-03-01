@@ -47,7 +47,7 @@ yc serverless function version create \
   --runtime "$RUNTIME" \
   --entrypoint "$ENTRYPOINT" \
   --memory 256m \
-  --execution-timeout 6s \
+  --execution-timeout 36s \
   --environment VERTEX_PROJECT_ID=$VERTEX_PROJECT_ID,VERTEX_LOCATION=$VERTEX_LOCATION,GEMINI_MODEL_ID=$GEMINI_MODEL_ID,BOT_TOKEN=$BOT_TOKEN,GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS \
   --service-account-id "$SA_ID" \
   --mount type=object-storage,bucket=$BUCKET_NAME,prefix=$MOUNT_PREFIX,mount-point=$MOUNT_POINT,mode=ro \
