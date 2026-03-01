@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Bot, webhookCallback } from 'grammy';
+import { Bot, webhookCallback, InlineQueryResultBuilder } from 'grammy';
 import { generateResponse } from './gemini.js';
 const token = process.env.BOT_TOKEN;
 if (!token) {
@@ -23,6 +23,26 @@ bot.on('message:text', async (ctx) => {
     await ctx.reply(replyText, {
         reply_parameters: { message_id: ctx.message.message_id }
     });
+});
+
+bot.on('inline_query', async (ctx) => {
+    const query = ctx.inlineQuery.query;
+
+    if (!query) {
+        return;
+    }
+
+    try {
+        const replyText = await generateResponse(query);
+
+        const result = InlineQueryResultBuilder.article('1', 'Gemini Response', {
+            description: replyText.substring(0, 50) + '...'
+        }).text(replyText);
+
+        await ctx.answerInlineQuery([result], { cache_time: 0 });
+    } catch (e) {
+        console.error('Inline query error:', e);
+    }
 });
 
 bot.catch((err) => {
