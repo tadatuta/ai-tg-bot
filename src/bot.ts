@@ -12,6 +12,41 @@ bot.command('start', async (ctx) => {
     await ctx.reply('Hello! I am a bot connected to Gemini Flash. Send me a message!');
 });
 
+const processedMediaGroups = new Set<string>();
+
+bot.on('message:is_automatic_forward', async (ctx) => {
+    if (process.env.AUTO_COMMENT_ENABLED !== 'true') return;
+
+    const message = ctx.message;
+    const mediaGroupId = message.media_group_id;
+
+    if (mediaGroupId) {
+        if (processedMediaGroups.has(mediaGroupId)) {
+            return; // Skip if already processed this album
+        }
+        processedMediaGroups.add(mediaGroupId);
+
+        // Prevent memory leak by capping the Set size
+        if (processedMediaGroups.size > 1000) {
+            const firstItem = processedMediaGroups.values().next().value;
+            if (firstItem) processedMediaGroups.delete(firstItem);
+        }
+    }
+
+    const postText = message.text || message.caption;
+    if (!postText) return;
+
+    try {
+        const replyText = await generateResponse(postText);
+        await ctx.reply(replyText, {
+            // New Telegram API format replacing reply_to_message_id
+            reply_parameters: { message_id: message.message_id }
+        });
+    } catch (e) {
+        console.error('Error generating auto-comment:', e);
+    }
+});
+
 bot.on('message:text', async (ctx) => {
     const userMessage = ctx.message.text;
 
