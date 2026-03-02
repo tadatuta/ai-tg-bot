@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Bot, webhookCallback, InlineQueryResultBuilder } from 'grammy';
+import { Bot, webhookCallback, InlineQueryResultBuilder, InlineKeyboard } from 'grammy';
 import { generateResponse } from './gemini.js';
 const token = process.env.BOT_TOKEN;
 if (!token) {
@@ -33,16 +33,54 @@ bot.on('inline_query', async (ctx) => {
     }
 
     try {
-        const replyText = await generateResponse(query);
+        const keyboard = new InlineKeyboard().text('⏳ Обработка...', 'ignore');
 
-        const result = InlineQueryResultBuilder.article('1', 'Gemini Response', {
-            description: replyText.substring(0, 50) + '...'
-        }).text(replyText);
+        const result = InlineQueryResultBuilder.article('1', 'Сгенерировать ответ', {
+            description: `Запрос: ${query}`,
+            reply_markup: keyboard
+        }).text(`⏳ Сгенерировать ответ для: ${query}`);
 
         await ctx.answerInlineQuery([result], { cache_time: 0 });
     } catch (e) {
         console.error('Inline query error:', e);
     }
+});
+
+bot.on('chosen_inline_result', async (ctx) => {
+    const query = ctx.chosenInlineResult.query;
+    const inlineMessageId = ctx.chosenInlineResult.inline_message_id;
+
+    if (!inlineMessageId) {
+        console.warn('No inline_message_id received. Ensure inline feedback is enabled.');
+        return;
+    }
+
+    try {
+        // Query the LLM
+        const replyText = await generateResponse(query);
+
+        // Update the sent message with the final response
+        await ctx.api.editMessageTextInline(
+            inlineMessageId,
+            replyText,
+            { reply_markup: { inline_keyboard: [] } } // Remove the loading button
+        );
+    } catch (e) {
+        console.error('Error updating inline message:', e);
+        try {
+            await ctx.api.editMessageTextInline(
+                inlineMessageId,
+                'Произошла ошибка при генерации ответа.',
+                { reply_markup: { inline_keyboard: [] } }
+            );
+        } catch (innerError) {
+            console.error('Failed to send error message:', innerError);
+        }
+    }
+});
+
+bot.callbackQuery('ignore', async (ctx) => {
+    await ctx.answerCallbackQuery('Подождите, ответ генерируется...');
 });
 
 bot.catch((err) => {
